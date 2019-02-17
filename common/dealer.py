@@ -1,9 +1,6 @@
-from abc import ABCMeta, abstractmethod
-
-from common.model.Player import Player
+from common.player import Player
 
 class Dealer(Player):
-    __metaclass__ = ABCMeta
 
     def __init__(self, bankroll=0):
         super(Dealer, self).__init__([], bankroll)
@@ -16,3 +13,4 @@ class Dealer(Player):
 
     def __str__(self):
         return str(self.__dict__)
+

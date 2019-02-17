@@ -1,5 +1,5 @@
-from common.amountstrategy.AmountStrategy import AmountStrategy
-from craps.bets.CrapsBet import CrapsBet
+from common.amount_strategy import AmountStrategy
+from craps.bets import CrapsBet
 import logging as log
 
 class ThreeFourFiveOdds(AmountStrategy):

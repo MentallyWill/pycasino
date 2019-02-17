@@ -1,3 +1,4 @@
+#TODO move inside Player?
 class BettingStrategy:
 
     def __init__(self, bet, amount_strategy):

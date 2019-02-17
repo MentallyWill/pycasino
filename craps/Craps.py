@@ -1,9 +1,11 @@
-from common.model.Bet import Result
-from common.model.Dealer import Dealer
-from common.model.Game import Game
+import random
+
+from common.bet import Result
+from common.dealer import Dealer
+from common.game import Game
+from common.game import GameRound
+from common.player import Player
 from config import config
-from craps.CrapsPlayer import CrapsPlayer
-from craps.CrapsRound import CrapsRound
 import logging as log
 
 class Craps(Game):
@@ -11,57 +13,68 @@ class Craps(Game):
     def __init__(self):
         log.debug("Initializing craps")
         self.prev_round = CrapsRound()
-        players = [CrapsPlayer(player['bettingStrategy'], player['bankroll']) for player in config['craps']['players']]
+        players = [Player(player['bettingStrategy'], player['bankroll']) for player in config['craps']['players']]
         dealer = Dealer()
-        self.roundNo = 0
         log.debug('Playing craps with players=%s and dealer=%s', players, dealer)
         super(Craps, self).__init__(players, dealer)
 
+    #TODO this can probably go into the base class?
     def play(self):
         log.debug("Let's play craps!")
         game_round = CrapsRound()
-        while self.should_continue():
-            game_round = CrapsRound(game_round)
+        # If there are unresolved bets, continue playing 
+        while self.should_continue() or game_round.bets:
             log.debug('Playing round %s with game_round=%s', self.roundNo, game_round)
             self.play_round(game_round)
+            #TODO add final state to game.rounds[] for stats purposes later? or just use stat collector for useful info?
+            # reset for next round
+            game_round = CrapsRound(game_round)
+
         # Finalize, return any active bets as pushes
-        #TODO should "ending" just mean no new bets accepted, play out rest of bets?
+        #TODO is this needed anymore?
         final_game_state = CrapsRound(game_round)
         for bet in final_game_state.bets:
             bet.result = Result.PUSH
             bet.track_result()
             bet.pay_player()
         self.print_results()
-        
-    def should_continue(self):
-        if 'ROUND_COUNT' in config['playUntil'] and self.roundNo == config['roundCount']:
-            return False
+    
+class CrapsRound(GameRound):
 
-        for player in self.players:
-            if player.can_continue(config['craps']['tableMin']):
-                self.roundNo += 1
-                return True
-        else:
-            return False
+    def __init__(self, prev_round=None):
+        self.die1 = 0
+        self.die2 = 0
+        self.roll = 0
+        self.point = None
+        self.rolls = set()
+        super(CrapsRound, self).__init__([])
+        if prev_round is not None and not prev_round.is_seven_out():
+            self.init_round(prev_round)
 
-    def print_results(self):
-        log.info('=======================================================================================')
-        log.info('======================================= RESULTS =======================================')
-        log.info('=======================================================================================')
-        log.info('Rounds Played: %s', self.roundNo)
-        #TODO check these are correct
-        for player in self.players:
-            log.info('---------------------------------------------------------------------------------------')
-            log.info('Player with betting strategy: %s', 
-                     ' '.join(str(betting_strategy) for betting_strategy in player.betting_strategies))
-            log.info('Starting bank: %s, ending bank: %s, total wagered: %s', player.bankroll, player.bank, player.total_wagered)
-            log.info('OVERALL HOUSE EDGE: %s', (player.bankroll - player.bank) / player.total_wagered)
-            for bet_type, bet_data in player.all_bets.items():
-                house_edge = (bet_data['totalWagered'] - bet_data['totalWon']) / bet_data['totalWagered']
-                log.info('***********')
-                log.info('%s = {Times=%s, %s=%s, %s=%s, %s=%s, Total Winnings=%s, Total Wagered=%s}', bet_type.name, 
-                         bet_data['timesPlaced'], Result.WIN.name, bet_data[Result.WIN], 
-                         Result.LOSE.name, bet_data[Result.LOSE], Result.PUSH.name, bet_data[Result.PUSH], 
-                         bet_data['totalWon'], bet_data['totalWagered'])
-                log.info('HOUSE EDGE: %s', house_edge)
+    def init_round(self, prev_round):
+        if prev_round.is_point_on():
+            self.point = None if prev_round.is_point_hit() else prev_round.point
+        elif prev_round.roll in {4, 5, 6, 8, 9, 10}:
+            self.point = prev_round.roll
+        self.rolls = prev_round.rolls
+        self.bets = [bet for bet in prev_round.bets if bet.result == Result.NOTHING]
 
+    def start_round(self):
+        self.die1 = random.randint(1, 6)
+        self.die2 = random.randint(1, 6)
+        self.roll = self.die1 + self.die2
+        if self.roll != 7:
+            self.rolls.add(self.roll)
+        log.info('Rolled %s (%s, %s) and the point is %s', self.roll, self.die1, self.die2, self.point)
+
+    def is_seven_out(self):
+        return self.is_point_on() and self.roll == 7
+
+    def is_point_on(self):
+        return self.point is not None
+
+    def is_point_hit(self):
+        return self.point == self.roll
+
+    def __str__(self):
+        return str(self.__dict__)

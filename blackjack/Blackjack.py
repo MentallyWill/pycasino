@@ -1,4 +1,4 @@
-from common.model.Game import Game
+from common.game import Game
 
 class Blackjack(Game):
     

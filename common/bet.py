@@ -1,8 +1,9 @@
 from abc import ABCMeta, abstractmethod
 from enum import Enum
+
 import logging as log
 
-class Bet(object):
+class Bet:
     __metaclass__ = ABCMeta
 
     def __init__(self, player, bet_type, wager=10):
