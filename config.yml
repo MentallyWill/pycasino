@@ -18,6 +18,8 @@ craps:
           amountStrategy: common.amount_strategy.TableMin
         - bet: craps.bets.PassLineOdds
           amountStrategy: craps.amountstrategy.ThreeFourFiveOdds.ThreeFourFiveOdds
+        #- bet: craps.bets.FieldBet
+        #  amountStrategy: common.amount_strategy.TableMin
 
 # see example at https://stackoverflow.com/questions/533048/how-to-log-source-file-name-and-line-number-in-python
 logging:

@@ -25,7 +25,7 @@ class Bet:
         pass
 
     @abstractmethod
-    def calculate_payout(self):
+    def calculate_payout(self, game_round):
         pass
 
     def handle_bet(self, game_round):
@@ -34,7 +34,7 @@ class Bet:
             log.info('%s is %s', self.bet_type.name, self.result.name)
             self.track_result()
             if self.result == Result.WIN:
-                self.calculate_payout()
+                self.calculate_payout(game_round)
             if self.result in {Result.WIN, Result.PUSH}:
                 self.pay_player()
 
