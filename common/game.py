@@ -12,6 +12,7 @@ class Game:
         self.players = players
         self.dealer = dealer
         self.roundNo = 0
+        self.simulation_percent = -1
         #TODO use for stats or remove
         self.rounds = []
 
@@ -28,6 +29,7 @@ class Game:
         pass
 
     def play_round(self, game_round):
+        self.log_quiet_mode()
         for player in self.players:
             game_round.bets += player.make_bets(game_round)
 
@@ -51,6 +53,14 @@ class Game:
                 return True
         else:
             return False
+
+    def log_quiet_mode(self):
+        if config['quiet']:
+            percent_complete = int((self.roundNo / config['rounds']) * 100)
+            while (percent_complete - self.simulation_percent) >= 1:
+                self.round_percent += 1
+                log.info('Simulation at %s%%', self.round_percent)
+
 
     def print_results(self):
         log.info('=======================================================================================')

@@ -33,10 +33,6 @@ class Bet:
         if self.result != Result.NOTHING:
             log.info('%s is %s', self.bet_type.name, self.result.name)
             self.track_result()
-            if self.result == Result.WIN:
-                self.calculate_payout(game_round)
-            if self.result in {Result.WIN, Result.PUSH}:
-                self.pay_player()
 
     def track_result(self):
         self.player.all_bets[self.bet_type][self.result] += 1
@@ -45,6 +41,18 @@ class Bet:
         log.debug('Paying player payout=%s wager=%s', self.payout, self.wager)
         self.player.all_bets[self.bet_type]['totalWon'] += (self.payout + self.wager)
         self.player.pay(self.payout + self.wager)
+
+    def win(self, game_round):
+        self.result = Result.WIN
+        self.calculate_payout(game_round)
+        self.pay_player()
+
+    def push(self):
+        self.result = Result.PUSH
+        self.pay_player()
+
+    def lose(self):
+        self.result = Result.LOSE
 
     def __str__(self):
         return str(self.__dict__)

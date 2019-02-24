@@ -5,7 +5,7 @@ from common.dealer import Dealer
 from common.game import Game
 from common.game import GameRound
 from common.player import Player
-from config import config
+from config import craps_fig
 import logging as log
 
 class Craps(Game):
@@ -13,7 +13,7 @@ class Craps(Game):
     def __init__(self):
         log.debug("Initializing craps")
         self.prev_round = CrapsRound()
-        players = [Player(player['bettingStrategy'], player['bankroll']) for player in config['craps']['players']]
+        players = [Player(player['bettingStrategy'], player['bankroll']) for player in craps_fig['players']]
         dealer = Dealer()
         log.debug('Playing craps with players=%s and dealer=%s', players, dealer)
         super(Craps, self).__init__(players, dealer)

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 import argparse
-import sys
 import logging as log
 import logging.config
+import sys
 import yaml
 
 from config import config
@@ -40,11 +40,6 @@ def setup_parser():
     return parser
 
 def override_config(args):
-    if args.log is not None:
-        # validate it's INFO/WARN/...?
-        config['logging']['loggers']['']['level'] = args.log.upper()
-        configure_logging()
-
     config['game'] = args.game
     playUntil = list()
     if args.rounds is not None:
@@ -59,14 +54,26 @@ def override_config(args):
 
     if playUntil:
         config['playUntil'] = playUntil
+
+    if args.log is not None:
+        config['logging']['loggers']['']['level'] = args.log.upper()
+   
+    config['quiet'] = True if config['rounds'] >= 100 and 'ROUND_COUNT' in config['playUntil'] else False
+
+    configure_logging()
+
     log.debug('Using config=%s', config)
 
 def configure_logging():
     logging.config.dictConfig(config['logging'])
+    if config['quiet']:
+        #TODO there must be a cleaner way...
+        logging.getLogger('').handlers[0].addFilter(log_filter)
+
+def log_filter(record):
+    return record.getMessage().startswith('Simulation at')
 
 if __name__ == '__main__':
-    configure_logging()
-
     #TODO be much more thoughtful about logging?
     parser = setup_parser()
     args = parser.parse_args()

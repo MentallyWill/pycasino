@@ -2,13 +2,14 @@ from enum import Enum
 
 from common.bet import Bet
 from common.bet import Result
-from config import config
+from config import craps_fig
 import logging as log
 
 class CrapsBet(Enum):
     PASS_LINE = 0
     PASS_LINE_ODDS = 1
-    FIELD = 2
+    COME = 2
+    FIELD = 3
 
 class PassLineBet(Bet):
 
@@ -26,14 +27,14 @@ class PassLineBet(Bet):
            Point on board it wins, 7 loses"""
         if game_round.point is None:
             if game_round.roll in {2, 3, 12}:
-                self.result = Result.LOSE
+                self.lose()
             elif game_round.roll in {7, 11}:
-                self.result = Result.WIN
+                self.win(game_round)
         else:
             if game_round.roll == game_round.point:
-                self.result = Result.WIN
+                self.win(game_round)
             elif game_round.roll == 7:
-                self.result = Result.LOSE
+                self.lose()
 
     def calculate_payout(self, game_round):
         """Pass line pays 1:1"""
@@ -66,9 +67,9 @@ class PassLineOdds(Bet):
     def assess_bet(self, game_round):
         """Only placed with point on board. Wins if point is hit, loses on 7-out"""
         if game_round.roll == game_round.point:
-            self.result = Result.WIN
+            self.win(game_round)
         elif game_round.roll == 7:
-            self.result = Result.LOSE
+            self.lose()
 
     def calculate_payout(self, game_round):
         """Pass line odds pay 6:5 for {6, 8}, 3:2 for {5, 9}, and 2:1 for {4, 10}"""
@@ -76,11 +77,48 @@ class PassLineOdds(Bet):
         if game_round.roll in {6, 8}:
             payout_ratio = 6/5
         elif game_round.roll in {5, 9}:
-            self.payout_ratio = 3/2
+            payout_ratio = 3/2
         elif game_round.roll in {4, 10}:
-            self.payout_ratio = 2/1
-        
+            payout_ratio = 2/1
         self.payout = self.wager * payout_ratio
+
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __repr__(self):
+        return str(self)
+
+class Come(Bet):
+
+    def __init__(self, player, game_round, wager=10):
+        log.info('Placing come bet wager=%s, player.bank=%s', wager, player.bank)
+        self.point = None
+        super(Come, self).__init__(player, CrapsBet.COME, wager)
+
+    def is_bet_allowed(game_round):
+        return game_round.point is not None
+
+    def assess_bet(self, game_round):
+        """Same as pass line bet:
+            On initial roll: wins on 7, 11 and loses on 2, 3, 12.
+            Afterward you have another 'point', wins on hit, 7 loses"""
+        if self.point is None:
+            if game_round.roll in {2, 3, 12}:
+                self.lose()
+            elif game_round.roll in {7, 11}:
+                self.win(game_round)
+            else:
+                log.info('Come bet point set to %s', game_round.roll)
+                self.point = game_round.roll
+        else:
+            if game_round.roll == self.point:
+                self.win(game_round)
+            elif game_round.roll == 7:
+                self.lose()
+
+    def calculate_payout(self, game_round):
+        """Come bet pays as passline does, 1:1"""
+        self.payout = self.wager
 
     def __str__(self):
         return str(self.__dict__)
@@ -101,9 +139,9 @@ class FieldBet(Bet):
         """Wins on 2, 3, 4, 9, 10, 11, 12 (2 pays double, 12 double or triple)
         Loses on 5, 6, 7, 8"""
         if game_round.roll in {2, 3, 4, 9, 10, 11, 12}:
-            self.result = Result.WIN
+            self.win(game_round)
         elif game_round.roll in {5, 6, 7, 8}:
-            self.result = Result.LOSE
+            self.lose()
 
     def calculate_payout(self, game_round):
         """2 pays 2:1, 12 either 2 or 3:1, rest 1:1"""
@@ -112,7 +150,13 @@ class FieldBet(Bet):
         elif game_round.roll == 2:
             self.payout = 2 * self.wager
         elif game_round.roll == 12:
-            if config['craps']['field12PaysTriple']:
+            if craps_fig['field12PaysTriple']:
                 self.payout = 3 * self.wager
             else:
                 self.payout = 2 * self.wager
+
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __repr__(self):
+        return str(self)
